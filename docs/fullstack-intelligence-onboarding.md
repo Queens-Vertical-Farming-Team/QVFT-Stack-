@@ -98,7 +98,7 @@ git switch -c feature/farm-insights-dashboard
 code .
 ~~~
 
-**First inspect the repo.** If the frontend already has a package.json, use its existing tooling (\`npm install\`, \`npm run dev\`). If it is still only a README and there is no app, coordinate with #14, then scaffold *inside the existing frontend/ directory*:
+**First inspect the repo.** If the frontend already has a package.json, use its existing tooling (`npm install`, `npm run dev`). If it is still only a README and there is no app, coordinate with #14, then scaffold *inside the existing frontend/ directory*:
 
 ~~~powershell
 cd frontend
