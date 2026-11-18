@@ -135,7 +135,7 @@ Do not leak database errors or credentials to clients. Authorize **every request
 
 ## 4. Suggested frontend data fetching
 
-Create a typed module such as \`frontend/src/api/farmInsights.ts\`. For development, use a non-secret API base URL in environment configuration. Vite exposes variables prefixed \`VITE_\` to frontend code, so **never put passwords, Supabase secret/service-role keys, private tokens or API credentials in these variables**.
+Create a typed module such as `frontend/src/api/farmInsights.ts`. For development, use a non-secret API base URL in environment configuration. Vite exposes variables prefixed `VITE_` to frontend code, so **never put passwords, Supabase secret/service-role keys, private tokens or API credentials in these variables**.
 
 ~~~typescript
 import type { Reading } from "../types/farm";
@@ -153,19 +153,19 @@ export async function getLatestReadings(
   signal?: AbortSignal,
 ): Promise<LatestResponse> {
   const response = await fetch(
-    \`\${BASE_URL}/zones/\${encodeURIComponent(zoneId)}/readings/latest\`,
+    `${BASE_URL}/zones/${encodeURIComponent(zoneId)}/readings/latest`,
     { signal, credentials: "include" },
   );
   if (!response.ok) {
-    throw new Error(\`Could not fetch readings (HTTP \${response.status})\`);
+    throw new Error(`Could not fetch readings (HTTP ${response.status})`);
   }
   return (await response.json()) as LatestResponse;
 }
 ~~~
 
-\`credentials: "include"\` is appropriate **only if** the project has approved a cookie-based authenticated API and configured narrowly scoped CORS/CSRF protections. If the team adopts bearer tokens or a same-origin proxy, change this implementation accordingly. This example is not a completed authentication design.
+`credentials: "include"` is appropriate **only if** the project has approved a cookie-based authenticated API and configured narrowly scoped CORS/CSRF protections. If the team adopts bearer tokens or a same-origin proxy, change this implementation accordingly. This example is not a completed authentication design.
 
-Add \`AbortController\` handling in the component on unmount/zone change. Treat failed requests as errors rather than silently replacing data with zeroes. Validate/normalize server responses at the appropriate boundary in production rather than trusting a TypeScript type assertion alone.
+Add `AbortController` handling in the component on unmount/zone change. Treat failed requests as errors rather than silently replacing data with zeroes. Validate/normalize server responses at the appropriate boundary in production rather than trusting a TypeScript type assertion alone.
 
 ## 5. Test matrix (reviewer should exercise each case)
 
