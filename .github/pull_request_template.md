@@ -41,3 +41,15 @@ N/A
 ## Additional Notes
 
 Add any screenshots, hardware notes, limitations, or information reviewers should know.
+
+## Learning & AI Verification
+
+Briefly answer:
+
+- What did you learn while completing this work?
+- What did AI tools help you with, if any?
+- What did you personally verify or test?
+- What part of this implementation could fail or produce a wrong result?
+- Can you explain the code/design you are submitting without relying on generated text?
+
+The goal is not to avoid AI-assisted development. The goal is to make sure contributors understand, test, and can maintain what they submit.
