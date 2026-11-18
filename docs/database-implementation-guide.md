@@ -247,7 +247,7 @@ LIMIT 100;
 
 ### Why this exists
 
-QFVT needs to answer not just "what temperature was detected?" but "what rule requested a fan change, what command was sent, did the mock controller acknowledge it, and what state did it report?"
+QVFT needs to answer not just "what temperature was detected?" but "what rule requested a fan change, what command was sent, did the mock controller acknowledge it, and what state did it report?"
 
 ### Step by step
 
