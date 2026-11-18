@@ -1,4 +1,4 @@
-# QVFT Stack — Database & Automation Implementation Roadmap
+# QVFT Stack — Database, Automation & Intelligence Implementation Roadmap
 
 > **Status:** Engineering assignment and implementation guide, not a claim that the software has already been built or deployed.
 >
@@ -10,9 +10,11 @@
 
 - [Database & Supabase — step-by-step guide](database-implementation-guide.md) — GitHub issues **#13, #21, #23, #22**.
 - [Automation & Control — step-by-step guide](automation-control-implementation-guide.md) — GitHub issues **#17, #25, #24, #26**.
+- [Intelligence & Full-Stack — step-by-step guide](intelligence-fullstack-implementation-guide.md) — GitHub issues **#16, #29, #30, #31, #32, #33, #34**.
 - [Existing system architecture](architecture.md) — higher-level planned Stack architecture.
 - [Database epic #3](https://github.com/Queens-Vertical-Farming-Team/QVFT-Stack-/issues/3).
 - [Automation epic #7](https://github.com/Queens-Vertical-Farming-Team/QVFT-Stack-/issues/7).
+- [Intelligence epic #6](https://github.com/Queens-Vertical-Farming-Team/QVFT-Stack-/issues/6).
 
 These instructions implement and expand the existing GitHub issue descriptions. **Open each issue before starting**: its acceptance criteria and dependencies are authoritative for that PR.
 
