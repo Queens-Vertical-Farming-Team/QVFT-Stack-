@@ -4,6 +4,17 @@ The QVFT Stack Team develops the software, embedded systems, data infrastructure
 
 QVFT is a multidisciplinary student design team at Queen's University focused on developing accessible, automated, and open-source vertical farming technology.
 
+## Getting Started
+
+New team members should begin with:
+
+- [ONBOARDING.md](ONBOARDING.md) — clone, setup, branch, commit, push, and Pull Request workflow
+- [docs/git-workflow.md](docs/git-workflow.md) — team Git/GitHub workflow
+- [docs/workstreams/README.md](docs/workstreams/README.md) — Stack workstreams and ownership
+- [CONTRIBUTING.md](CONTRIBUTING.md) — contribution and review rules
+
+Actual work should be tracked with GitHub Issues. Claim an Issue before starting and work on a branch rather than directly on `main`.
+
 ## Our Goal
 
 Our goal is to connect the physical farm with a reliable digital platform that allows the team to collect data, monitor growing conditions, understand system performance, and eventually support automated farm control.
