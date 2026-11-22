@@ -79,7 +79,94 @@ Firmware should **not**:
 
 Some of these can run in parallel after the interfaces are agreed.
 
+
+## Engineering checks and balances
+
+For this workstream, **"the code compiles" is not enough**.
+
+Every firmware task should pass five gates before it is considered complete:
+
+~~~text
+1. BUILD
+   Does it compile / run?
+
+2. FUNCTION
+   Does the intended feature work?
+
+3. FAILURE
+   What happens when the sensor, network, backend, or configuration is wrong?
+
+4. RECOVERY
+   Does the device recover without requiring a full rewrite or unsafe manual intervention?
+
+5. REPRODUCTION
+   Can another QVFT member reproduce the result from the repository and documentation?
+~~~
+
+### Evidence required in each PR
+
+The contributor should include evidence appropriate to the task:
+
+- exact build command used
+- build output or test output
+- board/controller model
+- firmware version
+- wiring/pin map where hardware is involved
+- serial-monitor logs
+- example telemetry/heartbeat payloads
+- screenshots or terminal output from the receiving backend where relevant
+- failure-injection test results
+- recovery test results
+- known limitations
+- exact reproduction steps for another member
+
+Do not accept statements such as:
+
+> "It worked on my computer."
+
+Prefer evidence such as:
+
+~~~text
+Test: disconnect temperature sensor during runtime
+Expected: TEMP-01 changes to read_error, device remains online
+Observed: PASS
+Evidence: serial log + heartbeat payload attached
+~~~
+
+### Standard test record
+
+For each meaningful test, record:
+
+| Field | What to record |
+| --- | --- |
+| Test ID | Short stable name |
+| Purpose | What behavior is being verified |
+| Setup | Hardware/software/configuration used |
+| Steps | Exact actions taken |
+| Expected | What should happen |
+| Observed | What actually happened |
+| Result | PASS / FAIL / BLOCKED |
+| Evidence | Log, screenshot, payload, test output |
+| Notes | Limitation, follow-up, issue number |
+
+A failed test is useful. Do not hide it. Document it and either fix it in the same PR or open a follow-up Issue if it is outside scope.
+
+### Second-person verification
+
+At least one important milestone per contributor should be reproduced by someone other than the original author.
+
+The reviewer should:
+
+1. pull the branch
+2. follow only the documented setup
+3. build/run it
+4. repeat at least one normal test
+5. repeat at least one failure test
+
+If the reviewer needs undocumented instructions from the author, documentation is incomplete.
+
 ---
+
 
 # #10 — Inventory QVFT sensors and controllers
 
@@ -757,6 +844,667 @@ sensor/mock reading
 - heartbeat timeout
 
 The result should clearly identify which component failed.
+
+---
+
+
+# Detailed verification gates by Issue
+
+The following are the **minimum checks you, as Stack lead, can use to decide whether the work actually functions**.
+
+---
+
+## Verification gate for #10 — Hardware inventory
+
+### Contributor must prove
+
+- every physical sensor/controller they claim to support has an exact model or is explicitly marked unknown
+- voltage and interface information comes from a datasheet/manual or is marked unknown
+- no unknown-voltage device is wired just to "see if it works"
+- the intended ESP32/Arduino compatibility is documented
+- calibration requirements are noted
+
+### Lead test
+
+Pick one item from the inventory at random and ask the contributor:
+
+1. What exact model is this?
+2. What voltage powers it?
+3. What signal/interface does it use?
+4. Which ESP32 pins/interfaces could connect to it?
+5. Does it need calibration?
+6. What document did you use to determine this?
+
+**Pass:** they can answer from the inventory/datasheet without guessing.
+
+**Fail:** important electrical values are assumptions, copied from a different model, or missing without being labelled unknown.
+
+---
+
+## Verification gate for #11 — Telemetry contract
+
+### Contributor must prove
+
+The same payload can be understood by:
+
+- firmware
+- backend
+- database owner
+- dashboard/intelligence owner
+
+### Required tests
+
+#### T11-01 — Valid payload
+
+Create one known-good payload.
+
+Expected:
+- backend validation accepts it
+- identifiers are unambiguous
+- unit is explicit
+- timestamp can be parsed
+- quality state is recognized
+
+#### T11-02 — Missing required field
+
+Delete `sensor_id` or another required field.
+
+Expected:
+- validation rejects it
+- error explains what is missing
+- no malformed reading is silently inserted
+
+#### T11-03 — Wrong type
+
+Example:
+
+~~~json
+{
+  "value": "twenty-three"
+}
+~~~
+
+Expected:
+- rejected or explicitly normalized according to a documented rule
+- never silently treated as a valid numeric reading
+
+#### T11-04 — Duplicate message
+
+Send the same message/sequence identifier twice.
+
+Expected:
+- duplicate behavior matches the documented policy
+- repeated delivery must not create uncontrolled duplicate downstream actions
+
+#### T11-05 — Timestamp problem
+
+Send missing/invalid/old time data.
+
+Expected:
+- firmware/backend behavior is documented
+- measurement time and receive time remain distinguishable
+
+### Lead test
+
+Ask the backend owner to consume the payload without asking the firmware author what each field means.
+
+**Pass:** the contract is sufficient by itself.
+
+---
+
+## Verification gate for #35 — Firmware project setup
+
+### Contributor must prove
+
+A clean machine can build the firmware.
+
+### Required tests
+
+#### T35-01 — Clean build
+
+From a fresh checkout:
+
+~~~powershell
+git clone https://github.com/Queens-Vertical-Farming-Team/QVFT-Stack-.git
+cd QVFT-Stack-
+git switch <feature-branch>
+# follow only firmware/README.md
+~~~
+
+Expected:
+- dependencies install
+- firmware compiles
+- no local-only path is required
+
+#### T35-02 — Flash
+
+Expected:
+- selected ESP32 accepts the firmware
+- flash procedure is documented
+
+#### T35-03 — Boot identity
+
+Expected serial output should contain at least:
+
+~~~text
+device_id=<expected ID>
+firmware_version=<expected version>
+boot=<successful>
+~~~
+
+#### T35-04 — Secret scan
+
+Search the branch for:
+
+- Wi-Fi passwords
+- tokens
+- private keys
+- Supabase privileged keys
+- hard-coded production endpoints if they are meant to be configurable
+
+Expected:
+- no secrets committed
+
+#### T35-05 — Reproduction by another member
+
+A second member performs the build/flash using only the guide.
+
+**Pass:** another person can reproduce it.
+
+---
+
+## Verification gate for #36 — Sensor driver
+
+### Contributor must prove
+
+The driver handles both **correct measurements and sensor failure**.
+
+### Required tests
+
+#### T36-01 — Initialization
+
+Power/connect the sensor.
+
+Expected:
+- initialization succeeds
+- sensor identity/status is logged
+
+#### T36-02 — Repeated reads
+
+Collect a meaningful sequence of readings rather than one sample.
+
+Expected:
+- firmware remains stable
+- units are consistent
+- no obvious unbounded memory/logging behavior
+
+#### T36-03 — Known-condition sanity test
+
+Expose the sensor to a safe, obvious change appropriate to the device.
+
+Examples:
+- temperature sensor: warm/cool environment slightly
+- light sensor: cover/uncover
+- reservoir/level simulator: change known input
+
+Expected:
+- reading changes in the physically expected direction
+
+This is a **sanity test**, not a substitute for calibration.
+
+#### T36-04 — Disconnect sensor
+
+Disconnect the sensor or simulate a read failure.
+
+Expected:
+- driver returns an explicit error/invalid state
+- firmware does not report a believable fake value
+- the rest of the device remains responsive
+
+#### T36-05 — Reconnect sensor
+
+Restore the sensor.
+
+Expected:
+- driver recovers according to documented behavior
+- quality/status returns to normal
+- reboot requirement, if any, is explicitly documented
+
+#### T36-06 — Mock driver
+
+Run without the physical sensor using a fake/synthetic driver.
+
+Expected:
+- downstream telemetry can still be tested
+
+### Lead questions
+
+Ask:
+
+- Where in the code is hardware-specific access?
+- Where are units normalized?
+- How is a read failure represented?
+- What happens if initialization succeeds but a later read fails?
+
+If the contributor cannot point to these locations, they do not yet understand the implementation.
+
+---
+
+## Verification gate for #37 — Networking and telemetry
+
+### Contributor must prove
+
+Telemetry works when the network is healthy **and fails safely when it is not**.
+
+### Required tests
+
+#### T37-01 — Successful send
+
+Expected chain:
+
+~~~text
+sensor/mock reading
+→ JSON payload
+→ network request
+→ FastAPI accepts
+→ success recorded in firmware log
+~~~
+
+Evidence:
+- serial log
+- backend request/log
+- example payload
+
+#### T37-02 — Wrong backend address
+
+Expected:
+- timeout/failure is bounded
+- firmware remains responsive
+- failure is visible
+
+#### T37-03 — Wi-Fi removed
+
+Disable the development Wi-Fi or use an unreachable SSID.
+
+Expected:
+- sensor reading loop continues where appropriate
+- reconnect attempts follow documented timing
+- no tight retry loop
+- device health reflects network problem
+
+#### T37-04 — Wi-Fi restored
+
+Expected:
+- connection returns without reflashing
+- telemetry resumes
+
+#### T37-05 — Backend returns error
+
+Test representative 4xx and 5xx behavior using a mock backend where practical.
+
+Expected:
+- firmware distinguishes delivery failure from successful delivery
+- it does not mark an unsuccessful request as sent successfully
+
+#### T37-06 — Payload validation failure
+
+Send a deliberately invalid payload from the test path.
+
+Expected:
+- backend rejects it
+- firmware/logging captures the failure
+
+### Lead pass condition
+
+Disconnect Wi-Fi **while the demo is running**. If the whole firmware freezes or requires reflashing to recover, the task is not complete.
+
+---
+
+## Verification gate for #38 — Calibration and measurement quality
+
+### Contributor must prove
+
+They understand the difference between:
+
+- a sensor producing a number
+- a calibrated/checked measurement
+- a valid value
+- a stale value
+- a plant-acceptable value
+
+### Required checks
+
+#### T38-01 — Reference comparison
+
+Compare against a suitable known/reference condition where practical.
+
+Record:
+
+~~~text
+reference value
+sensor value
+difference
+date/time
+sensor model
+calibration state
+~~~
+
+#### T38-02 — Repeatability
+
+Take repeated measurements under a stable condition.
+
+Expected:
+- variation is recorded
+- unexplained large jumps are investigated
+
+#### T38-03 — Invalid condition
+
+Create or simulate an impossible/error reading.
+
+Expected:
+- quality becomes suspect/invalid according to policy
+- the value is not silently treated as trustworthy
+
+#### T38-04 — Stale data
+
+Stop new readings while keeping an old value stored.
+
+Expected:
+- old historical data remains historical
+- downstream code can identify that the current state is stale
+
+#### T38-05 — Calibration record
+
+Expected:
+- calibration/check date and relevant metadata are recorded
+- procedure can be repeated by another member
+
+### pH/EC extra sign-off
+
+For pH/EC work, require:
+- exact probe/interface model
+- manufacturer calibration procedure
+- calibration solutions/reference values used
+- temperature-compensation behavior if supported/required
+- storage/conditioning notes
+- evidence that electrical noise/grounding was considered
+
+Do not approve "the pH sensor works" based only on one plausible-looking number.
+
+---
+
+## Verification gate for #39 — Health and diagnostics
+
+### Contributor must prove
+
+The system can tell the difference between:
+
+~~~text
+healthy device
+degraded device
+offline device
+~~~
+
+and can identify individual sensor faults.
+
+### Required tests
+
+#### T39-01 — Healthy heartbeat
+
+Expected:
+- correct device ID
+- firmware version
+- uptime
+- network status
+- sensor statuses
+
+#### T39-02 — One sensor fails
+
+Expected:
+- device stays online
+- device becomes degraded or equivalent
+- failed sensor is identified
+- healthy sensors remain distinguishable
+
+#### T39-03 — Network loss
+
+Expected:
+- health state/log records communication problem
+- firmware itself remains running
+
+#### T39-04 — Reboot
+
+Expected:
+- uptime resets
+- reset reason is reported where supported
+- device identity remains correct
+
+#### T39-05 — Backend offline timeout
+
+Coordinate with backend owner.
+
+Expected:
+- after the agreed heartbeat timeout, backend can mark device offline
+- when heartbeat resumes, status returns according to policy
+
+### Lead demo
+
+During the demo, unplug only one sensor.
+
+Ask:
+
+> "Is the ESP32 offline, or is one sensor broken?"
+
+The system should make that answer obvious.
+
+---
+
+## Verification gate for #40 — Reliability and buffering
+
+### Contributor must prove
+
+Temporary failures do not cause data explosion, firmware lockup, or uncontrolled replay.
+
+### Required tests
+
+#### T40-01 — Short outage
+
+Disable network briefly.
+
+Expected:
+- readings continue according to local design
+- failed deliveries are buffered/marked according to policy
+- queue does not exceed its configured bound
+
+#### T40-02 — Buffer-full condition
+
+Force enough failed sends to fill the buffer.
+
+Expected:
+- documented overflow policy occurs
+- firmware remains stable
+- no heap/memory runaway
+
+#### T40-03 — Recovery
+
+Restore the network.
+
+Expected:
+- queued data is processed according to documented order
+- original measurement timestamps remain intact
+
+#### T40-04 — Duplicate/retry
+
+Force retry of a previously sent message.
+
+Expected:
+- sequence/message identity allows duplicate behavior to be identified downstream
+
+#### T40-05 — Reboot during outage
+
+Expected:
+- behavior matches documented persistence policy
+- contributor can explain what buffered data is lost or retained
+
+#### T40-06 — Long-run test
+
+Run for an agreed extended development period with regular telemetry.
+
+Record:
+- reset count
+- reconnect count
+- send failures
+- memory/resource observations where available
+- sensor read failures
+
+The exact duration can scale with development stage; the important part is that long-running behavior is tested rather than inferred from a two-minute demo.
+
+### Lead pass condition
+
+The contributor must be able to state:
+
+- maximum buffer size
+- retry policy
+- overflow behavior
+- duplicate behavior
+- what survives reboot
+- what does not
+
+If these are unknown, the reliability design is incomplete.
+
+---
+
+# End-to-end system verification
+
+After the individual tasks pass, run one integrated test with the firmware, backend and database owners.
+
+## E2E-01 — Healthy path
+
+~~~text
+physical/mock sensor
+→ firmware read
+→ normalized reading
+→ JSON telemetry
+→ FastAPI validation
+→ database insert
+→ latest reading query
+~~~
+
+**Pass:** the value, unit, sensor ID, device/zone relationship and measurement time remain correct end-to-end.
+
+## E2E-02 — Sensor failure
+
+Break/disconnect the sensor.
+
+**Pass:**
+- firmware detects error
+- no fake environmental measurement is stored as valid
+- device-health information reflects the problem
+
+## E2E-03 — Network failure
+
+Disconnect network.
+
+**Pass:**
+- firmware remains responsive
+- failure is reported
+- recovery occurs after network restoration
+
+## E2E-04 — Backend/database failure
+
+Make the receiving service unavailable in a controlled test environment.
+
+**Pass:**
+- firmware does not interpret failure as success
+- retry/buffering behavior matches design
+- no uncontrolled rapid requests
+
+## E2E-05 — Duplicate delivery
+
+Replay one telemetry message.
+
+**Pass:** downstream behavior matches the team's duplicate/idempotency policy.
+
+## E2E-06 — Stale reading
+
+Stop telemetry long enough to cross the defined freshness timeout.
+
+**Pass:** dashboard/intelligence/backend can identify that the most recent stored value is no longer current.
+
+---
+
+# Stack-lead sign-off sheet
+
+Before you mark the firmware milestone complete, you should be able to check all of these:
+
+### Build/reproduction
+
+- [ ] Another member can clone and build.
+- [ ] Another member can flash/run.
+- [ ] Toolchain/version requirements are documented.
+- [ ] No machine-specific paths are required.
+
+### Hardware
+
+- [ ] Exact board/sensor model documented.
+- [ ] Wiring/pins documented.
+- [ ] Voltage/interface checked.
+- [ ] Unknown electrical details are not guessed.
+
+### Sensor behavior
+
+- [ ] Normal reading demonstrated.
+- [ ] Repeated readings demonstrated.
+- [ ] Sensor disconnect demonstrated.
+- [ ] Failure is represented explicitly.
+- [ ] Sensor can recover or recovery requirement is documented.
+
+### Telemetry
+
+- [ ] Standard payload demonstrated.
+- [ ] Backend accepts valid data.
+- [ ] Backend rejects bad data.
+- [ ] Timestamps/units/IDs remain correct.
+
+### Network/recovery
+
+- [ ] Wi-Fi loss demonstrated live.
+- [ ] Backend outage demonstrated.
+- [ ] Retry is bounded.
+- [ ] Reconnect succeeds.
+- [ ] Firmware does not freeze.
+
+### Device health
+
+- [ ] Healthy heartbeat demonstrated.
+- [ ] Individual sensor fault demonstrated.
+- [ ] Firmware version visible.
+- [ ] Offline/degraded semantics are documented.
+
+### Data quality
+
+- [ ] Calibration/check process documented.
+- [ ] Invalid vs stale distinguished.
+- [ ] No fake fallback measurements.
+- [ ] Plant thresholds are owned/validated outside firmware.
+
+### Reliability
+
+- [ ] Buffer has a maximum size.
+- [ ] Buffer-full behavior tested.
+- [ ] Duplicate/replay behavior documented.
+- [ ] Reboot/outage behavior documented.
+- [ ] Longer-running test completed.
+
+### Learning
+
+- [ ] Contributor can explain their sensor interface.
+- [ ] Contributor can explain their code structure.
+- [ ] Contributor can identify failure paths.
+- [ ] Contributor can modify sampling/network settings without blindly regenerating the project.
+- [ ] Contributor states what AI assisted with and what they verified themselves.
+
+If several of these cannot be checked, the work may be a useful prototype, but it should not yet be described as a reliable firmware subsystem.
 
 ---
 
