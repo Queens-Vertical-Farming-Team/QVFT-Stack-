@@ -16,6 +16,15 @@ Planned documentation includes:
 - `deployment.md` — deployment and hosting information
 - `troubleshooting.md` — common issues and debugging guidance
 
+## Implementation Guides
+
+- [Implementation roadmap](implementation-roadmap.md)
+- [Database & Supabase step-by-step guide](database-implementation-guide.md)
+- [Automation & Control step-by-step guide](automation-control-implementation-guide.md)
+- [Intelligence & Full-Stack step-by-step guide](intelligence-fullstack-implementation-guide.md)
+
+These guides are implementation assignments and learning references; they do not claim that the described systems are already deployed.
+
 ## Documentation Goals
 
 The documentation should explain:
