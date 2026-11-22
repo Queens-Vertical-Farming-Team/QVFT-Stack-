@@ -8,6 +8,7 @@
 
 ## Read these guides
 
+- [Sensors & Firmware — step-by-step guide](sensors-firmware-implementation-guide.md) — GitHub issues **#10, #11, #35, #36, #37, #38, #39, #40**.
 - [Database & Supabase — step-by-step guide](database-implementation-guide.md) — GitHub issues **#13, #21, #23, #22**.
 - [Automation & Control — step-by-step guide](automation-control-implementation-guide.md) — GitHub issues **#17, #25, #24, #26**.
 - [Intelligence & Full-Stack — step-by-step guide](intelligence-fullstack-implementation-guide.md) — GitHub issues **#16, #29, #30, #31, #32, #33, #34**.
